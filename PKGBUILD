@@ -1,12 +1,13 @@
-# Maintainer:  rotzelbart <tausendkubik@gmail.com>
-# Contributor:  TechVio <68242352+techvio1@users.noreply.github.com>
+# Maintainer:  Mohamed tarek <Mokhamed_tarek@mail.ru>
+# Contributor: rotzelbart <tausendkubik@gmail.com>
+# Contributor: TechVio <68242352+techvio1@users.noreply.github.com>
 # Contributor: chn <g897331845@gmail.com>
 # Contributor: Hunter Wittenborn <git@hunterwittenborn.me>
 # Contributor: Alfin Bakhtiar Ilhami <alfin at nuclea dot id>
 # Contributor: Jan-Tarek Butt <tarek at ring0 dot de>
 
 pkgname=bootstrap-studio
-pkgver=6.7.0
+pkgver=6.7.2
 pkgrel=1
 pkgdesc="Bootstrap Studio is a powerful tool which web developers and designers use to create layouts and fully functional websites using the Bootstrap framework."
 arch=("x86_64")
@@ -15,7 +16,7 @@ url="https://bootstrapstudio.io/"
 
 source=("https://releases.bootstrapstudio.io/${pkgver}/Bootstrap%20Studio.AppImage"
 				"bstudio.desktop")
-sha256sums=('6e1b73cfa7b2bc45eb1aba7bba9be4ea162e39e88e8c8facc57432fbd83206da'
+sha256sums=('b7be659a9ac25ae9b0b75c0d54d599487764d4d052985ab08c34191d1a41bfd8'
             'e1c1b0d4b24658fc0ead611cb002dcde431e30256cb8fd0dffb3cfc76f24db84')
 prepare() {
     # Extract AppImage
