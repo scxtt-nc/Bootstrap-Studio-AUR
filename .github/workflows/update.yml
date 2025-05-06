@@ -1,0 +1,78 @@
+name: Update PKGBUILD
+
+on:
+  schedule:
+    - cron: '0 0 * * 0'  # Runs weekly at midnight UTC on Sundays
+  workflow_dispatch:
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    outputs:
+      updated: ${{ steps.update_pkgbuild.outputs.updated }}
+      new_version: ${{ steps.fetch_version.outputs.new_version }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4.2.2
+
+      - name: Fetch Bootstrap Studio download page
+        id: fetch_version
+        run: |
+          curl -sL https://bootstrapstudio.io/download -o download_page.html
+          # Extract version number from <h2><strong>Bootstrap Studio </strong>7.0.3</h2>
+          new_version=$(grep -oP '(?<=<h2><strong>Bootstrap Studio </strong>)[0-9]+\.[0-9]+\.[0-9]+' download_page.html | head -n 1)
+          echo "Detected version: $new_version"
+          echo "new_version=$new_version" >> $GITHUB_OUTPUT
+
+      - name: Compare version and update PKGBUILD
+        id: update_pkgbuild
+        run: |
+          new_version="${{ steps.fetch_version.outputs.new_version }}"
+          current_version=$(grep '^pkgver=' PKGBUILD | cut -d '=' -f2)
+          echo "Current PKGBUILD version: $current_version"
+          if [ "$new_version" != "$current_version" ]; then
+            echo "New version detected! Updating PKGBUILD..."
+            package_url="https://releases.bootstrapstudio.io/$new_version/Bootstrap%20Studio.AppImage"
+            echo "Downloading package from: $package_url"
+            curl -L "$package_url" --output "BootstrapStudio.AppImage"
+            new_sha256=$(sha256sum "BootstrapStudio.AppImage" | awk '{print $1}')
+            echo "New SHA256: $new_sha256"
+            sed -i "s/^pkgver=.*/pkgver=$new_version/" PKGBUILD
+            sed -i "s/^sha256sums=.*/sha256sums=('${new_sha256}')/" PKGBUILD
+            makepkg --printsrcinfo > .SRCINFO
+            echo "updated=true" >> $GITHUB_OUTPUT
+          else
+            echo "No new version found. PKGBUILD remains unchanged."
+            echo "updated=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Commit and push changes
+        if: steps.update_pkgbuild.outputs.updated == 'true'
+        run: |
+          git config --global user.email "action@github.com"
+          git config --global user.name "GitHub Action"
+          git add PKGBUILD
+          git commit -m "Update PKGBUILD to version ${{ steps.fetch_version.outputs.new_version }} [skip ci]"
+          git push
+
+  release:
+    needs: update
+    if: needs.update.outputs.updated == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4.2.2
+        with:
+          fetch-depth: 0
+          ref: main  # Make sure to check out the main branch with the latest changes
+
+      - name: Create GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Use the version passed from the update job
+          new_version="${{ needs.update.outputs.new_version }}"
+          echo "Creating release for version: $new_version"
+          gh release create "v$new_version" \
+            --title "v$new_version" \
+            --notes "Automated release for $new_version"
